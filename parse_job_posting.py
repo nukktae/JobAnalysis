@@ -87,51 +87,42 @@ def parse_job_posting(job_text: str, source: str = None) -> Dict[str, Any]:
     
     # Base prompt with JSON instruction
     base_prompt = """You are a job posting analyzer. Extract and return the following information in JSON format:
-    - job_title (string)
-    - company_name (string)
-    - locations (array of strings)
-    - work_mode (string: "Remote", "Hybrid", "On-site", or "Not Specified")
-    - timeline (string)
-    - required_education (string)
-    - required_experience (string)
-    - key_skills (array of strings)
-    - salary_range (string)
-    - visa_sponsorship (string: "Yes", "No", or "Not Specified")
-    - benefits (array of strings)
-    - industry (array of strings)
-    - notes (string)
-    
-    Format your response as a valid JSON object."""
+    - job_title (string): The exact title of the position
+    - company_name (string): The name of the hiring company
+    - locations (array of strings): All mentioned work locations
+    - work_mode (string: "Remote", "Hybrid", "On-site", or "Not Specified"): The work arrangement
+    - timeline (string): Any mentioned start dates, durations, or deadlines
+    - required_education (string): Required degrees or educational qualifications
+    - required_experience (string): Required years or type of experience
+    - key_skills (array of strings): Technical skills, tools, and technologies required
+    - salary_range (string): Any mentioned compensation or salary range
+    - visa_sponsorship (string: "Yes", "No", or "Not Specified"): Information about visa sponsorship
+    - benefits (array of strings): All mentioned benefits and perks
+    - industry (array of strings): Related industries
+    - notes (string): Any additional important information
+
+    Be thorough in extracting all available information. Look for implicit mentions and context clues."""
 
     # Add source-specific instructions
     source_prompts = {
+        "indeed": """This is from an Indeed-integrated job board. Pay special attention to:
+        - Job details section at the top
+        - Benefits and perks section
+        - Required qualifications
+        - Preferred qualifications
+        - Company overview section
+        - Any structured data fields like salary, location, etc.""",
+        
         "pdf": """This text comes from a PDF. Pay special attention to:
         - Section headers that might indicate different parts of the job posting
         - Any formatting artifacts that might need cleaning
         - Tables or structured data that might have been converted to text
-        Return the extracted information in JSON format.""",
-        
-        "linkedin": """This is from LinkedIn. Look for:
-        - "About the job" section
-        - "About the company" section
-        - Skills section with endorsements
-        - Experience level indicators
-        Return the extracted information in JSON format.""",
-        
-        "workday": """This is from Workday. Focus on:
-        - Job requisition details
-        - Qualification sections
-        - Basic/Additional qualifications
-        - Position details
-        Return the extracted information in JSON format.""",
-        
-        "greenhouse": """This is from Greenhouse. Parse:
-        - "What you'll do" section
-        - "Who you are" section
-        - "About us" section
-        - Requirements vs. Nice-to-have skills
-        Return the extracted information in JSON format."""
+        - Footer information that might contain additional details"""
     }
+
+    # Determine source from URL if not specified
+    if not source and "indeed" in job_text.lower():
+        source = "indeed"
 
     # Combine prompts
     system_prompt = base_prompt
@@ -144,7 +135,7 @@ def parse_job_posting(job_text: str, source: str = None) -> Dict[str, Any]:
             response_format={ "type": "json_object" },
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Please analyze this job posting and return a JSON object:\n\n{job_text}"}
+                {"role": "user", "content": f"Please analyze this job posting thoroughly and return a complete JSON object. Include any implicit information:\n\n{job_text}"}
             ],
             temperature=0.7
         )

@@ -213,6 +213,8 @@ def process():
                     source = "greenhouse"
                 elif 'workday' in job_url:
                     source = "workday"
+                elif 'indeed' in job_url or 'careers' in job_url:
+                    source = "indeed"
             except Exception as e:
                 return jsonify({
                     "success": False,
