@@ -101,8 +101,8 @@ python verify_database_access.py
 ## 🖼️ Screenshots
 
 <div align="center">
-<img src="docs/screenshot1.png" alt="Main Interface" width="400"/>
-<img src="docs/screenshot2.png" alt="Parsing Result" width="400"/>
+<img src="docs/images/screenshot1.png" alt="Main Interface" width="400"/>
+<img src="docs/images/screenshot2.png" alt="Parsing Result" width="400"/>
 </div>
 
 ## 🏗️ Architecture
