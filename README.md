@@ -14,7 +14,10 @@ An intelligent job application tracking system that uses AI to parse job posting
 
 ### 🎥 Demo
 
-https://github.com/nukktae/JobAnalysis/blob/main/docs/images/demo.mp4?raw=true
+<video width="800" controls>
+  <source src="docs/images/demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
 </div>
 
