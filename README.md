@@ -15,10 +15,10 @@ An intelligent job application tracking system that uses AI to parse job posting
 ### 🎥 Demo
 
 <div align="center">
-<video width="100%" controls>
-  <source src="docs/images/demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+  <a href="docs/images/demo.mp4">
+    <img src="docs/images/demo.gif" alt="Application Demo" width="100%">
+  </a>
+  <p><i>Click to view full video</i></p>
 </div>
 
 </div>
