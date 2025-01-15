@@ -11,11 +11,11 @@ import re
 from job_sites import JobSiteExtractor
 from functools import lru_cache
 from parse_job_posting import parse_job_posting
+from pdf_extractor import extract_text_from_pdf
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 load_dotenv()
-
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 def clean_job_data(job_data: dict) -> dict:
     # Extract nested data
@@ -145,6 +145,41 @@ def cached_extract_from_url(url):
         print(f"URL extraction error: {str(e)}")
         raise Exception(f"Failed to extract job description: {str(e)}")
 
+def extract_job_content(url):
+    extractor = JobSiteExtractor()
+    try:
+        if not url or 'javascript:' in url:
+            raise Exception("Invalid URL provided")
+            
+        # Extract based on domain
+        if 'zohorecruit.com' in url:
+            job_text = extractor.extract_zoho_recruit(url)
+        elif 'wellfound.com' in url or 'angel.co' in url:
+            job_text = extractor.extract_wellfound(url)
+        elif 'oraclecloud.com' in url:
+            job_text = extractor.extract_oracle_cloud(url)
+        elif 'brassring.com' in url:
+            job_text = extractor.extract_brassring(url)
+        elif 'linkedin.com' in url:
+            raise Exception("LinkedIn requires authentication")
+        elif 'indeed.com' in url:
+            job_text = extractor.extract_indeed(url)
+        elif 'workdayjobs.com' in url or 'myworkdayjobs.com' in url:
+            job_text = extractor.extract_workday(url)
+        elif 'greenhouse.io' in url:
+            job_text = extractor.extract_greenhouse(url)
+        else:
+            job_text = extractor.extract_with_playwright(url)
+            
+        if not job_text or job_text.strip() == "":
+            raise Exception(f"Failed to extract job description from {url}")
+            
+        return job_text
+        
+    except Exception as e:
+        print(f"URL extraction error: {str(e)}")
+        raise Exception(f"Failed to extract job description: {str(e)}")
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -154,23 +189,38 @@ def process():
     try:
         job_url = request.form.get('job_url')
         job_text = request.form.get('job_text')
+        job_pdf = request.files.get('job_pdf')
+        source = None
 
-        if job_url and not job_text:
+        # Determine source
+        if job_pdf and job_pdf.filename.endswith('.pdf'):
+            try:
+                job_text = extract_text_from_pdf(job_pdf)
+                source = "pdf"
+            except Exception as e:
+                return jsonify({
+                    "success": False,
+                    "error": f"Failed to extract text from PDF: {str(e)}"
+                }), 400
+
+        elif job_url:
             try:
                 job_text = cached_extract_from_url(job_url)
-                if not job_text:
-                    return jsonify({
-                        "success": False,
-                        "error": "Could not extract job description. Please copy and paste the job posting text directly."
-                    }), 400
+                # Determine source from URL
+                if 'linkedin.com' in job_url:
+                    source = "linkedin"
+                elif 'greenhouse.io' in job_url:
+                    source = "greenhouse"
+                elif 'workday' in job_url:
+                    source = "workday"
             except Exception as e:
                 return jsonify({
                     "success": False,
                     "error": str(e)
                 }), 400
 
-        # Parse the job text using OpenAI
-        job_data = parse_job_posting(job_text)
+        # Parse the job text using OpenAI with source context
+        job_data = parse_job_posting(job_text, source)
         
         if not job_data:
             return jsonify({

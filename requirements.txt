@@ -7,3 +7,4 @@ webdriver-manager==4.0.1
 playwright==1.41.0
 flask
 openai
+PyPDF2==3.0.1

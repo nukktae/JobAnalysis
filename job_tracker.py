@@ -16,11 +16,19 @@ class NotionJobTracker:
         print(f"Using database ID: {self.database_id}")
 
     def add_job(self, job_data: Dict[str, Any]):
+        # Ensure locations is a non-empty list
+        if not job_data.get("locations"):
+            job_data["locations"] = ["Not Specified"]
+        
         # Process locations to remove commas
         processed_locations = []
         for location in job_data["locations"]:
-            processed_location = location.replace(",", " -")
-            processed_locations.append(processed_location)
+            if location:  # Only process non-empty locations
+                processed_location = location.replace(",", " -")
+                processed_locations.append(processed_location)
+        
+        if not processed_locations:
+            processed_locations = ["Not Specified"]
 
         # Handle date fields
         current_date = datetime.now().strftime("%Y-%m-%d")

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Job Posting Parser</title>
+    <title>AI Job Parser & Notion Tracker</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         #bg {
@@ -17,64 +17,171 @@
             z-index: 1;
             max-width: 800px;
             margin: 0 auto;
+            margin-left: 350px;
             padding: 2rem;
+            padding-top: 6rem;
+            perspective: 1000px;
+            transform-style: preserve-3d;
         }
         .glass-morphism {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            box-shadow: 
+                0 8px 32px 0 rgba(31, 38, 135, 0.37),
+                0 0 20px rgba(100, 200, 255, 0.1);
+            transform: translateZ(20px);
+            transition: transform 0.3s ease;
+            z-index: 10;
+        }
+        .glass-morphism:hover {
+            transform: translateZ(30px);
         }
         .custom-input {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(100, 200, 255, 0.1) inset;
         }
         .custom-input:focus {
-            background: rgba(255, 255, 255, 0.07);
-            border-color: rgba(255, 255, 255, 0.3);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(100, 200, 255, 0.5);
+            box-shadow: 
+                0 0 20px rgba(100, 200, 255, 0.2) inset,
+                0 0 30px rgba(100, 200, 255, 0.1);
         }
         .btn-hover {
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(45deg, #00a3ff, #00ff87);
+            border: none;
         }
-        .btn-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        .btn-hover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
         }
-        .container-narrow {
-            max-width: 680px;
-            margin: 0 auto;
+        .btn-hover:hover::before {
+            left: 100%;
         }
         .header-gradient {
-            background: linear-gradient(135deg, #ffffff 0%, #4a5568 100%);
+            background: linear-gradient(135deg, #00ff87 0%, #00a3ff 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 255, 135, 0.3);
+        }
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        .container-narrow {
+            transform-style: preserve-3d;
+        }
+        .step-item {
+            position: relative;
+        }
+        .step-item:not(:last-child):after {
+            content: '';
+            position: absolute;
+            left: 1rem;
+            top: 2.5rem;
+            height: 2rem;
+            width: 2px;
+            background: linear-gradient(to bottom, rgba(0, 255, 135, 0.3), transparent);
+        }
+        #floatingMenu {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 100;
+        }
+        #floatingMenu button {
+            transform: translateX(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        #floatingMenu:not(.hidden) button {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        #floatingMenu button:nth-child(1) { transition-delay: 0.1s; }
+        #floatingMenu button:nth-child(2) { transition-delay: 0.2s; }
+        #floatingMenu button:nth-child(3) { transition-delay: 0.3s; }
+        #floatingMenu button:nth-child(4) { transition-delay: 0.4s; }
+        .menu-item {
+            @apply w-48 h-12 glass-morphism btn-hover rounded-xl flex items-center px-4 space-x-3 text-white;
+            transform: translateX(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        #progressTracker.active {
+            transform: translateX(0);
+        }
+        
+        .progress-step {
+            @apply flex items-center mb-4;
+        }
+        
+        .progress-step.active .step-number {
+            @apply bg-gradient-to-r from-cyan-400 to-emerald-400;
+        }
+
+        .progress-tracker {
+            position: fixed;
+            top: 8rem;
+            left: -400px;
+            width: 300px;
+            height: auto;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 50;
+            padding: 2rem;
+        }
+
+        .progress-step.active {
+            color: white;
+            font-weight: bold;
         }
     </style>
 </head>
-<body class="bg-black text-white min-h-screen">
+<body class="bg-black text-white min-h-screen overflow-x-hidden">
     <canvas id="bg"></canvas>
     <div class="content-wrapper">
         <div class="container-narrow">
-            <h1 class="text-5xl font-bold mb-12 header-gradient text-center">Job Posting Parser</h1>
+            <h1 class="text-6xl font-bold mb-16 header-gradient text-center">AI Job Parser</h1>
 
             <div id="linkedinInstructions" class="mb-8 p-6 glass-morphism rounded-xl hidden">
-                <h3 class="font-bold mb-4 text-xl">LinkedIn Job Instructions</h3>
+                <h3 class="font-bold mb-4 text-xl">Quick LinkedIn Guide</h3>
                 <ol class="list-decimal ml-6 space-y-3 text-gray-300">
-                    <li>Open the job posting in your browser</li>
-                    <li>Click 'Show more' to expand the full description</li>
-                    <li>Copy the entire job posting</li>
-                    <li>Paste it in the text box below</li>
+                    <li>Navigate to the job listing</li>
+                    <li>Expand the full description</li>
+                    <li>Copy everything</li>
+                    <li>Drop it below & let AI do the magic</li>
                 </ol>
             </div>
 
             <form id="jobForm" class="space-y-8">
                 <div class="glass-morphism p-8 rounded-xl">
-                    <label class="block mb-4 text-lg font-medium">Job Posting URL</label>
+                    <label class="block mb-4 text-lg font-medium">Drop Your Job Link</label>
                     <input type="url" id="jobUrl" name="job_url" 
                         class="w-full p-4 rounded-xl custom-input text-white" 
-                        placeholder="https://example.com/job-posting">
+                        placeholder="https://linkedin.com/jobs/...">
                 </div>
 
                 <div class="relative my-10">
@@ -83,28 +190,38 @@
                 </div>
 
                 <div class="glass-morphism p-8 rounded-xl">
-                    <label class="block mb-4 text-lg font-medium">Paste Job Posting</label>
+                    <label class="block mb-4 text-lg font-medium">Or Paste Job Details Here</label>
                     <textarea id="jobText" name="job_text" rows="8" 
                         class="w-full p-4 rounded-xl custom-input text-white"
-                        placeholder="Paste the job description here..."></textarea>
+                        placeholder="Just paste the entire job listing here and watch the magic happen..."></textarea>
+                </div>
+
+                <div class="glass-morphism p-8 rounded-xl">
+                    <label class="block mb-4 text-lg font-medium">Or Upload Job Description PDF</label>
+                    <input type="file" id="jobPdf" name="job_pdf" 
+                        accept="application/pdf"
+                        class="w-full p-4 rounded-xl custom-input text-white"
+                        placeholder="Upload your job description PDF...">
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-4 justify-center mt-10">
                     <button type="submit" 
                         class="bg-white text-black px-8 py-4 rounded-xl font-medium btn-hover w-full sm:w-auto">
-                        Parse and Add to Notion
+                        Parse & Add to Notion
                     </button>
                     <button type="button" id="startNewButton"
                         class="bg-gray-900 text-white px-8 py-4 rounded-xl font-medium btn-hover hidden border border-gray-700 w-full sm:w-auto">
-                        Start New Job Parsing
+                        Start Fresh 🔄
                     </button>
                 </div>
             </form>
 
-            <div id="loadingIndicator" class="mt-10 hidden">
-                <div class="flex items-center justify-center p-8 glass-morphism rounded-xl">
-                    <div class="animate-spin rounded-full h-10 w-10 border-3 border-white border-t-transparent"></div>
-                    <span class="ml-4 text-gray-300 text-lg">Parsing job posting...</span>
+            <div id="loadingIndicator" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                <div class="relative">
+                    <div class="w-20 h-20 border-4 border-cyan-400/20 rounded-full">
+                        <div class="absolute inset-0 border-4 border-cyan-400 rounded-full animate-spin-slow"></div>
+                    </div>
+                    <div class="mt-4 text-center text-cyan-400">Processing</div>
                 </div>
             </div>
 
@@ -113,11 +230,89 @@
                 <pre id="jsonResult" class="p-8 glass-morphism rounded-xl overflow-auto text-gray-300 text-sm"></pre>
             </div>
 
-            <div id="error" class="mt-10 hidden p-8 bg-red-900/20 border border-red-500/20 rounded-xl text-red-400">
+            <div id="error" class="mt-10 hidden">
+                <div class="glass-morphism p-8 rounded-xl">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-6 h-6 text-amber-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <h3 class="text-xl font-semibold text-amber-400">Oops! We Need More Details</h3>
+                    </div>
+                    <p class="text-gray-300 mb-4">The job posting seems to be incomplete or couldn't be accessed. Here's what you can try:</p>
+                    <ul class="list-disc list-inside text-gray-300 space-y-2">
+                        <li>Make sure you've expanded the full job description</li>
+                        <li>Copy the entire job posting, including the title and company details</li>
+                        <li>If using a URL, ensure it's publicly accessible</li>
+                        <li>Try pasting the job description directly instead of using the URL</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="progressTracker" class="progress-tracker glass-morphism p-6 rounded-xl">
+                <div class="flex flex-col space-y-4">
+                    <div class="step-item progress-step">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 flex items-center justify-center">
+                                1
+                            </div>
+                            <div class="ml-4 text-white">Extract Job Data</div>
+                        </div>
+                        <div class="ml-12 text-sm text-gray-400 mt-1">
+                            Parsing job details...
+                        </div>
+                    </div>
+                    <div class="step-item progress-step">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-400/30 to-emerald-400/30 flex items-center justify-center">
+                                2
+                            </div>
+                            <div class="ml-4 text-gray-400">AI Analysis</div>
+                        </div>
+                        <div class="ml-12 text-sm text-gray-500 mt-1">
+                            GPT-4 processing...
+                        </div>
+                    </div>
+                    <div class="step-item progress-step">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-400/30 to-emerald-400/30 flex items-center justify-center">
+                                3
+                            </div>
+                            <div class="ml-4 text-gray-400">Notion Integration</div>
+                        </div>
+                        <div class="ml-12 text-sm text-gray-500 mt-1">
+                            Ready to sync...
+                        </div>
+                    </div>
+                    <div class="step-item progress-step">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-400/30 to-emerald-400/30 flex items-center justify-center">
+                                4
+                            </div>
+                            <div class="ml-4 text-gray-400">Application Tracking</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fixed bottom-8 right-8 flex flex-col-reverse items-end space-y-reverse space-y-4 z-50">
+                <button id="menuToggle" class="w-14 h-14 rounded-full glass-morphism btn-hover flex items-center justify-center text-2xl">
+                    <span>+</span>
+                </button>
+                
+                <div id="floatingMenu" class="hidden flex flex-col space-y-3">
+                    <button id="newSearchBtn" class="menu-item">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>New Search</span>
+                    </button>
+                    <!-- Add other menu items -->
+                </div>
             </div>
         </div>
     </div>
-    <script type="module" src="/static/background.js"></script>
+    <script type="module" src="{{ url_for('static', filename='background.js') }}"></script>
+    <script src="static/uiManager.js"></script>
     <script>
         document.getElementById('jobUrl').addEventListener('input', (e) => {
             const url = e.target.value;
@@ -144,10 +339,9 @@
 
         document.getElementById('jobForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const url = document.getElementById('jobUrl').value;
-            const instructionsDiv = document.getElementById('linkedinInstructions');
-            const errorDiv = document.getElementById('error');
+            const formData = new FormData(e.target);
             const loadingDiv = document.getElementById('loadingIndicator');
+            const errorDiv = document.getElementById('error');
             const resultDiv = document.getElementById('result');
             
             // Clear previous states
@@ -158,7 +352,6 @@
             loadingDiv.classList.remove('hidden');
             
             try {
-                const formData = new FormData(e.target);
                 const response = await fetch('/process', {
                     method: 'POST',
                     body: formData
@@ -190,6 +383,11 @@
                 errorDiv.textContent = "An error occurred. Please try again.";
                 errorDiv.classList.remove('hidden');
             }
+        });
+
+        document.getElementById('menuToggle').addEventListener('click', () => {
+            const menu = document.getElementById('floatingMenu');
+            menu.classList.toggle('hidden');
         });
     </script>
 </body>
