@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Posting Parser</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        #bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .glass-morphism {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        .custom-input {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .custom-input:focus {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .container-narrow {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+        .header-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #4a5568 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen">
+    <canvas id="bg"></canvas>
+    <div class="content-wrapper">
+        <div class="container-narrow">
+            <h1 class="text-5xl font-bold mb-12 header-gradient text-center">Job Posting Parser</h1>
+
+            <div id="linkedinInstructions" class="mb-8 p-6 glass-morphism rounded-xl hidden">
+                <h3 class="font-bold mb-4 text-xl">LinkedIn Job Instructions</h3>
+                <ol class="list-decimal ml-6 space-y-3 text-gray-300">
+                    <li>Open the job posting in your browser</li>
+                    <li>Click 'Show more' to expand the full description</li>
+                    <li>Copy the entire job posting</li>
+                    <li>Paste it in the text box below</li>
+                </ol>
+            </div>
+
+            <form id="jobForm" class="space-y-8">
+                <div class="glass-morphism p-8 rounded-xl">
+                    <label class="block mb-4 text-lg font-medium">Job Posting URL</label>
+                    <input type="url" id="jobUrl" name="job_url" 
+                        class="w-full p-4 rounded-xl custom-input text-white" 
+                        placeholder="https://example.com/job-posting">
+                </div>
+
+                <div class="relative my-10">
+                    <hr class="border-gray-800">
+                    <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-black px-6 py-2 text-gray-500 text-lg">or</span>
+                </div>
+
+                <div class="glass-morphism p-8 rounded-xl">
+                    <label class="block mb-4 text-lg font-medium">Paste Job Posting</label>
+                    <textarea id="jobText" name="job_text" rows="8" 
+                        class="w-full p-4 rounded-xl custom-input text-white"
+                        placeholder="Paste the job description here..."></textarea>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mt-10">
+                    <button type="submit" 
+                        class="bg-white text-black px-8 py-4 rounded-xl font-medium btn-hover w-full sm:w-auto">
+                        Parse and Add to Notion
+                    </button>
+                    <button type="button" id="startNewButton"
+                        class="bg-gray-900 text-white px-8 py-4 rounded-xl font-medium btn-hover hidden border border-gray-700 w-full sm:w-auto">
+                        Start New Job Parsing
+                    </button>
+                </div>
+            </form>
+
+            <div id="loadingIndicator" class="mt-10 hidden">
+                <div class="flex items-center justify-center p-8 glass-morphism rounded-xl">
+                    <div class="animate-spin rounded-full h-10 w-10 border-3 border-white border-t-transparent"></div>
+                    <span class="ml-4 text-gray-300 text-lg">Parsing job posting...</span>
+                </div>
+            </div>
+
+            <div id="result" class="mt-10 hidden">
+                <h2 class="text-2xl font-bold mb-4">Parsed Result</h2>
+                <pre id="jsonResult" class="p-8 glass-morphism rounded-xl overflow-auto text-gray-300 text-sm"></pre>
+            </div>
+
+            <div id="error" class="mt-10 hidden p-8 bg-red-900/20 border border-red-500/20 rounded-xl text-red-400">
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/static/background.js"></script>
+    <script>
+        document.getElementById('jobUrl').addEventListener('input', (e) => {
+            const url = e.target.value;
+            const instructionsDiv = document.getElementById('linkedinInstructions');
+            
+            if (url.includes('linkedin.com')) {
+                instructionsDiv.classList.remove('hidden');
+            } else {
+                instructionsDiv.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('startNewButton').addEventListener('click', () => {
+            // Clear all inputs and reset state
+            document.getElementById('jobUrl').value = '';
+            document.getElementById('jobText').value = '';
+            document.getElementById('jsonResult').textContent = '';
+            
+            // Hide all elements
+            ['result', 'error', 'linkedinInstructions', 'startNewButton'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+        });
+
+        document.getElementById('jobForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('jobUrl').value;
+            const instructionsDiv = document.getElementById('linkedinInstructions');
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loadingIndicator');
+            const resultDiv = document.getElementById('result');
+            
+            // Clear previous states
+            errorDiv.classList.add('hidden');
+            resultDiv.classList.add('hidden');
+            
+            // Show loading
+            loadingDiv.classList.remove('hidden');
+            
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                // Hide loading
+                loadingDiv.classList.add('hidden');
+                
+                if (!response.ok) {
+                    if (data.error && data.error.includes('LinkedIn')) {
+                        instructionsDiv.classList.remove('hidden');
+                    } else {
+                        errorDiv.textContent = data.error;
+                        errorDiv.classList.remove('hidden');
+                    }
+                    return;
+                }
+                
+                resultDiv.classList.remove('hidden');
+                document.getElementById('jsonResult').textContent = 
+                    JSON.stringify(data.data, null, 2);
+                // Show the start new button after successful parsing
+                document.getElementById('startNewButton').classList.remove('hidden');
+            } catch (error) {
+                // Hide loading
+                loadingDiv.classList.add('hidden');
+                errorDiv.textContent = "An error occurred. Please try again.";
+                errorDiv.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html> 

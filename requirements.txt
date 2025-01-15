@@ -1,0 +1,9 @@
+notion-client==2.0.0
+python-dotenv==1.0.0
+beautifulsoup4==4.12.2
+requests==2.31.0
+selenium==4.16.0
+webdriver-manager==4.0.1
+playwright==1.41.0
+flask
+openai
